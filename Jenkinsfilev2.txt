@@ -1,21 +1,7 @@
 pipeline {
-
     agent any
 
-    options {
-        disableConcurrentBuilds()
-    }
-
-    parameters {
-        booleanParam(
-            name: 'APPLY_NETWORK_POLICY',
-            defaultValue: false,
-            description: 'Aplicar NetworkPolicies após validar a POC'
-        )
-    }
-
     stages {
-
         stage('Validar acesso ao GKE') {
             steps {
                 sh '''
@@ -72,6 +58,7 @@ pipeline {
                     kubectl apply -f k8s/portal/deployment.yaml
                     kubectl apply -f k8s/portal/service.yaml
 
+                    /* groovylint-disable-next-line LineLength */
                     kubectl rollout status                         deployment/portal                         -n portal                         --timeout=120s
                 '''
             }
@@ -86,7 +73,8 @@ pipeline {
                     kubectl apply -f k8s/web1/deployment.yaml
                     kubectl apply -f k8s/web1/service.yaml
 
-                    kubectl rollout status                         deployment/web1                         -n web1                         --timeout=120s
+                    /* groovylint-disable-next-line LineLength */
+                    kubectl rollout status deployment/web1 -n web1 --timeout=120s
                 '''
             }
         }
@@ -100,6 +88,7 @@ pipeline {
                     kubectl apply -f k8s/web2/deployment.yaml
                     kubectl apply -f k8s/web2/service.yaml
 
+                    /* groovylint-disable-next-line LineLength */
                     kubectl rollout status                         deployment/web2                         -n web2                         --timeout=120s
                 '''
             }
@@ -114,26 +103,11 @@ pipeline {
                     kubectl apply -f k8s/gateway/deployment.yaml
                     kubectl apply -f k8s/gateway/service.yaml
 
-                    kubectl rollout status                         deployment/haproxy                         -n gateway                         --timeout=120s
+                    /* groovylint-disable-next-line LineLength */
+                    kubectl rollout status deployment/haproxy -n gateway --timeout=120s
                 '''
             }
-        }
-
-        stage('NetworkPolicy') {
-            when {
-                expression {
-                    return params.APPLY_NETWORK_POLICY
-                }
-            }
-
-            steps {
-                sh '''
-                    set -e
-                    kubectl apply -f k8s/network-policies/
-                '''
-            }
-        }
-
+        }   
         stage('Teste de roteamento') {
             steps {
                 sh '''
@@ -152,10 +126,13 @@ pipeline {
 
                     kubectl wait                         --for=condition=Ready                         pod/"$TEST_POD"                         -n gateway                         --timeout=60s
 
+                    /* groovylint-disable-next-line LineLength */
                     kubectl exec -n gateway "$TEST_POD" --                         wget -qO- http://haproxy-service.gateway.svc.cluster.local/                         | grep "Portal de Aplicações"
 
+                    /* groovylint-disable-next-line LineLength */
                     kubectl exec -n gateway "$TEST_POD" --                         wget -qO- http://haproxy-service.gateway.svc.cluster.local/web1/                         | grep "Aplicação WEB 1"
 
+                    /* groovylint-disable-next-line LineLength */
                     kubectl exec -n gateway "$TEST_POD" --                         wget -qO- http://haproxy-service.gateway.svc.cluster.local/web2/                         | grep "Aplicação WEB 2"
                 '''
             }
