@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: haproxy
+  namespace: gateway
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: haproxy
+
+  template:
+    metadata:
+      labels:
+        app: haproxy
+
+    spec:
+      containers:
+        - name: haproxy
+          image: haproxy:alpine
+
+          ports:
+            - name: http
+              containerPort: 8080
+
+          volumeMounts:
+            - name: haproxy-config
+              mountPath: /usr/local/etc/haproxy/haproxy.cfg
+              subPath: haproxy.cfg
+
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+
+      volumes:
+        - name: haproxy-config
+          configMap:
+            name: haproxy-config

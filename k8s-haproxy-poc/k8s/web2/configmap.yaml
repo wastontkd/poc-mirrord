@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web2-html
+  namespace: web2
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <title>WEB 2</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background: #312e81;
+                color: white;
+                text-align: center;
+                padding-top: 100px;
+            }
+            h1 {
+                font-size: 50px;
+            }
+            .info {
+                font-size: 20px;
+                margin: 30px;
+            }
+            a {
+                color: #67e8f9;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Aplicação WEB 2</h1>
+        <div class="info">
+            Namespace: <strong>web2</strong>
+        </div>
+        <p>Requisição encaminhada pelo HAProxy.</p>
+        <a href="/">Voltar para o Portal</a>
+    </body>
+    </html>
