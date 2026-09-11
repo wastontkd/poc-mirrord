@@ -1,0 +1,174 @@
+pipeline {
+
+    agent any
+
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    parameters {
+
+        string(
+            name: 'CONFIRM_REMOVE',
+            defaultValue: '',
+            description: 'Digite REMOVE para confirmar'
+        )
+    }
+
+    stages {
+
+        stage('Confirmar remoção') {
+
+            steps {
+
+                script {
+
+                    if (params.CONFIRM_REMOVE != 'REMOVE') {
+                        error(
+                            'Remoção cancelada. ' +
+                            'Informe REMOVE em CONFIRM_REMOVE.'
+                        )
+                    }
+                }
+            }
+        }
+
+        stage('Validar Cluster') {
+
+            steps {
+
+                sh '''
+                    set -e
+
+                    echo "Contexto:"
+                    kubectl config current-context
+
+                    echo
+                    echo "Nodes:"
+                    kubectl get nodes -o wide
+
+                    echo
+                    echo "Namespaces atuais:"
+                    kubectl get namespaces
+                '''
+            }
+        }
+
+        stage('Estado antes da remoção') {
+
+            steps {
+
+                sh '''
+                    echo "===== PORTAL ====="
+                    kubectl get all -n portal 2>/dev/null || true
+
+                    echo
+                    echo "===== WEB1 ====="
+                    kubectl get all -n web1 2>/dev/null || true
+
+                    echo
+                    echo "===== WEB2 ====="
+                    kubectl get all -n web2 2>/dev/null || true
+                '''
+            }
+        }
+
+        stage('Remover POC antiga') {
+
+            steps {
+
+                sh '''
+                    set -e
+
+                    kubectl delete namespace portal \
+                        --ignore-not-found=true \
+                        --wait=false
+
+                    kubectl delete namespace web1 \
+                        --ignore-not-found=true \
+                        --wait=false
+
+                    kubectl delete namespace web2 \
+                        --ignore-not-found=true \
+                        --wait=false
+                '''
+            }
+        }
+
+        stage('Aguardar remoção') {
+
+            steps {
+
+                sh '''
+                    set -e
+
+                    echo "Aguardando namespaces..."
+
+                    for NS in portal web1 web2
+                    do
+                        echo "Verificando $NS..."
+
+                        while kubectl get namespace "$NS" \
+                            >/dev/null 2>&1
+                        do
+                            sleep 5
+                        done
+
+                        echo "$NS removido."
+                    done
+                '''
+            }
+        }
+
+        stage('Validar Biblioteca') {
+
+            steps {
+
+                sh '''
+                    echo "===== BIBLIOTECA ====="
+
+                    kubectl get all \
+                        -n biblioteca \
+                        -o wide || true
+
+                    echo
+                    echo "===== GATEWAY ====="
+
+                    kubectl get all \
+                        -n gateway \
+                        -o wide
+
+                    echo
+                    echo "===== CPU NODE ====="
+
+                    kubectl describe node \
+                        $(kubectl get nodes \
+                        -o jsonpath='{.items[0].metadata.name}') \
+                    | sed -n \
+                        '/Allocated resources:/,/Events:/p'
+                '''
+            }
+        }
+    }
+
+    post {
+
+        success {
+
+            echo '''
+            POC antiga removida.
+
+            Removidos:
+              - portal
+              - web1
+              - web2
+
+            Mantidos:
+              - biblioteca
+              - gateway
+              - HAProxy
+            '''
+        }
+    }
+}

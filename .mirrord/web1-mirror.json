@@ -1,0 +1,28 @@
+{
+  "target": {
+    "path": "deployment/web1",
+    "namespace": "web1"
+  },
+
+  "feature": {
+
+    "env": false,
+
+    "fs": "local",
+
+    "network": {
+
+      "incoming": {
+        "mode": "mirror",
+
+        "port_mapping": [
+          [8080, 80]
+        ]
+      },
+
+      "outgoing": false,
+
+      "dns": false
+    }
+  }
+}
